@@ -1,0 +1,8 @@
+version = 1
+revision = 3
+requires-python = ">=3.13"
+
+[[package]]
+name = "automated-motor-activity-assessment-in-rats-via-computer-vision-based-object-tracking"
+version = "0.1.0"
+source = { virtual = "." }
