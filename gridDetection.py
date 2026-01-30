@@ -23,7 +23,7 @@ def get_grid_detection(display=False):
         # Find the largest contour
         largest_contour = max(contours, key=cv2.contourArea)
         x, y, w, h = cv2.boundingRect(largest_contour)
-        print(f'Bounding Rectangle: \nX={x}, \nY={y}, \nW={w}, \nH={h}')
+        # print(f'Bounding Rectangle: \nX={x}, \nY={y}, \nW={w}, \nH={h}')
         
         # Draw the rectangle (Green color BGR: (0, 0, 255))
         cv2.rectangle(img_with_rect, (x, y), (x + w, y + h), (0, 0, 255), 2)
