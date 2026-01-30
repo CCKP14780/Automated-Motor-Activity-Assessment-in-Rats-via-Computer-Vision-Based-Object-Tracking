@@ -20,6 +20,7 @@ H_ARENA = DIMENSION[5]
 INPUT_CSV = r'predictions\predictions\baseLine_labels.v003.000_mice_new.analysis.csv'
 BODY_PART = 'torso'
 X_COL, Y_COL = f'{BODY_PART}.x', f'{BODY_PART}.y'
+DATA = pd.read_csv(INPUT_CSV)
 
 def calculate_grid_range():
     x_step = W_ARENA / COLUMN
@@ -56,13 +57,20 @@ def is_valid_grid(grid):
         and grid[1] is not None
     )
 
+def is_valid_position(X, Y):
+    return (
+        X_ARENA <= X <= X_ARENA + W_ARENA
+        and Y_ARENA <= Y <= Y_ARENA + H_ARENA
+        and not np.isnan(X)
+        and not np.isnan(Y)
+    )
+
 def calculate_grid_crossing(show_changes=False):
-    data = pd.read_csv(INPUT_CSV)
     x_ranges, y_ranges = calculate_grid_range()
 
     total_steps = {}
-    for track_id in data['track'].unique(): # tranversing each track(instance)
-        track_data = data[data['track'] == track_id]
+    for track_id in DATA['track'].unique(): # tranversing each track(instance)
+        track_data = DATA[DATA['track'] == track_id]
 
         grid_positions = []
         for _, row in track_data.iterrows():
@@ -104,10 +112,41 @@ def calculate_grid_crossing(show_changes=False):
     return total_steps
 
 def calculate_instances_velocity():
-    pass
+    data = pd.read_csv(INPUT_CSV)
+    velocities = {}
+
+    for track_id in data['track'].unique():
+        track_data = data[data['track'] == track_id]
+
+        prev_x, prev_y = None, None
+        frame_distances = []
+
+        for _, row in track_data.iterrows():
+            x, y = row[X_COL], row[Y_COL]
+
+            if not is_valid_position(x, y):
+                prev_x, prev_y = None, None
+                continue
+
+            if prev_x is not None:
+                dx = x - prev_x
+                dy = y - prev_y
+                dist = np.sqrt(dx*dx + dy*dy)
+                frame_distances.append(dist)
+
+            prev_x, prev_y = x, y
+
+        velocities[track_id] = np.mean(frame_distances) if frame_distances else 0
+
+    return velocities
 
 
 step_counts = calculate_grid_crossing(show_changes=True)
 print("TOTAL STEPS PER MOUSE:")
 for track, steps in step_counts.items():
     print(f'{track}: {steps}')
+
+velocity_dict = calculate_instances_velocity()
+print("\nAVERAGE VELOCITY PER MOUSE:")
+for track, velocity in velocity_dict.items():
+    print(f'{track}: {velocity:.2f} pixels/frame')
