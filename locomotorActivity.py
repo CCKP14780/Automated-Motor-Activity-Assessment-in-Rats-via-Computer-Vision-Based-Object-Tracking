@@ -1,4 +1,3 @@
-import gridDetection as grid
 import pandas as pd
 import numpy as np
 import os
@@ -7,6 +6,7 @@ import cv2
 import matplotlib.pyplot as plt
 from pprint import pprint
 
+# import gridDetection as grid
 # Parameters from gridDetection.py --OBSOLETE
 # DIMENSION = grid.get_grid_detection(display=False)  # (ROW, COLUMN, x, y, w, h)
 # ROW = DIMENSION[0]
@@ -29,11 +29,20 @@ COLUMN = 5
 
 padding = 5 
 
-X_ARENA = DATA[X_COL].min() - padding # left wall
-Y_ARENA = DATA[Y_COL].min() - padding # top wall (Y increases downwards in image coordinates)
+# base calculation
+x_min_data = DATA[X_COL].min()
+x_max_data = DATA[X_COL].max()
+y_min_data = DATA[Y_COL].min()
+y_max_data = DATA[Y_COL].max()
 
-W_ARENA = (DATA[X_COL].max() - DATA[X_COL].min()) + (2 * padding) # arena width
-H_ARENA = (DATA[Y_COL].max() - DATA[Y_COL].min()) + (2 * padding) # arena height
+# sided tweaking
+left_extension = 100
+
+X_ARENA = (x_min_data - padding) - left_extension # left wall
+Y_ARENA = y_min_data - padding # top wall (Y increases downwards in image coordinates)
+
+W_ARENA = (x_max_data - x_min_data) + (2 * padding) + left_extension
+H_ARENA = (y_max_data - y_min_data) + (2 * padding)
 # print(f"NEW Arena Definition: X={X_ARENA:.1f}, Y={Y_ARENA:.1f}, W={W_ARENA:.1f}, H={H_ARENA:.1f}")
 
 # --- SANITY CHECK ---
@@ -185,15 +194,15 @@ def calculate_instances_velocity():
 
     return velocities
 
+def run():
+    # dwell_enter=5  (approx 0.15s) captures fast running.
+    # dwell_return=30 (approx 1.0s) ignores jittering back and forth.
+    step_counts = calculate_grid_crossing(dwell_enter=5, dwell_return=30, show_changes=True)
+    print("TOTAL STEPS PER MOUSE:")
+    for track, steps in step_counts.items():
+        print(f'{track}: {steps}')
 
-# dwell_enter=5  (approx 0.15s) captures fast running.
-# dwell_return=30 (approx 1.0s) ignores jittering back and forth.
-step_counts = calculate_grid_crossing(dwell_enter=5, dwell_return=30, show_changes=True)
-print("TOTAL STEPS PER MOUSE:")
-for track, steps in step_counts.items():
-    print(f'{track}: {steps}')
-
-velocity_dict = calculate_instances_velocity()
-print("\nAVERAGE VELOCITY PER MOUSE:")
-for track, velocity in velocity_dict.items():
-    print(f'{track}: {velocity:.2f} pixels/frame')
+    velocity_dict = calculate_instances_velocity()
+    print("\nAVERAGE VELOCITY PER MOUSE:")
+    for track, velocity in velocity_dict.items():
+        print(f'{track}: {velocity:.2f} pixels/frame')
