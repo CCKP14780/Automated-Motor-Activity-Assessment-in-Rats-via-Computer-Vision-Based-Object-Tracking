@@ -2,6 +2,11 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 
+COLOR = (0, 0, 255)          # Red color (BGR)
+THICKNESS = 3
+ROW = 3
+COLUMN = 5
+
 def get_grid_detection(display=False):
     img = cv2.imread(r'train9\2019-10-25frame3825.jpg')
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -28,11 +33,6 @@ def get_grid_detection(display=False):
         # Draw the rectangle (Green color BGR: (0, 0, 255))
         cv2.rectangle(img_with_rect, (x, y), (x + w, y + h), (0, 0, 255), 2)
         rect_drawn = True
-
-        COLOR = (0, 0, 255)          # Red color (BGR)
-        THICKNESS = 3
-        ROW = 4
-        COLUMN = 6
 
         for row in range(1, ROW):
             row_start = (x, y + (row * h) // ROW)

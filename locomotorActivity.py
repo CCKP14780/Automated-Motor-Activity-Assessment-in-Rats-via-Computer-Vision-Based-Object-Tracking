@@ -7,47 +7,67 @@ import cv2
 import matplotlib.pyplot as plt
 from pprint import pprint
 
-# Parameters from gridDetection.py
-DIMENSION = grid.get_grid_detection(display=False)  # (ROW, COLUMN, x, y, w, h)
-ROW = DIMENSION[0]
-COLUMN = DIMENSION[1]
-X_ARENA = DIMENSION[2]
-Y_ARENA = DIMENSION[3]
-W_ARENA = DIMENSION[4]
-H_ARENA = DIMENSION[5]
+# Parameters from gridDetection.py --OBSOLETE
+# DIMENSION = grid.get_grid_detection(display=False)  # (ROW, COLUMN, x, y, w, h)
+# ROW = DIMENSION[0]
+# COLUMN = DIMENSION[1]
+# X_ARENA = DIMENSION[2]
+# Y_ARENA = DIMENSION[3]
+# W_ARENA = DIMENSION[4]
+# H_ARENA = DIMENSION[5]
 
-# Tracking parameters (from CSV)
+# Tracking parameters (CSV)
 INPUT_CSV = r'predictions\predictions\baseLine_labels.v003.000_mice_new.analysis.csv'
 BODY_PART = 'torso'
 X_COL, Y_COL = f'{BODY_PART}.x', f'{BODY_PART}.y'
 DATA = pd.read_csv(INPUT_CSV)
 
-def calculate_grid_range():
-    x_step = W_ARENA / COLUMN
-    y_step = H_ARENA / ROW
+# define arena based on data range + padding
+# assuming the rat's thigmotaxis(wall-hugging) behavior, we can ensure that the area of the OFT arena can be defined with a small padding around the min/max coordinates of the tracked points. This allows us to capture all movements while ignoring outliers or tracking errors that may occur outside the arena boundaries.
+ROW = 3
+COLUMN = 5
 
-    x_ranges = [(X_ARENA + i * x_step, X_ARENA + (i + 1) * x_step) for i in range(COLUMN)]
-    y_ranges = [(Y_ARENA + j * y_step, Y_ARENA + (j + 1) * y_step) for j in range(ROW)]
-    # print(f'RANGES: {x_ranges}, {y_ranges}')
+padding = 5 
 
-    return x_ranges, y_ranges
+X_ARENA = DATA[X_COL].min() - padding # left wall
+Y_ARENA = DATA[Y_COL].min() - padding # top wall (Y increases downwards in image coordinates)
 
-def get_grid_index(X, Y, x_ranges, y_ranges):
-    col = None
-    row = None
+W_ARENA = (DATA[X_COL].max() - DATA[X_COL].min()) + (2 * padding) # arena width
+H_ARENA = (DATA[Y_COL].max() - DATA[Y_COL].min()) + (2 * padding) # arena height
+# print(f"NEW Arena Definition: X={X_ARENA:.1f}, Y={Y_ARENA:.1f}, W={W_ARENA:.1f}, H={H_ARENA:.1f}")
 
-    for i, (x_min, x_max) in enumerate(x_ranges):
-        if x_min <= X < x_max:
-            col = i
-            break
+# --- SANITY CHECK ---
+# print(f"Arena Definition: X={X_ARENA}, Y={Y_ARENA}, W={W_ARENA}, H={H_ARENA}")
+# print(f"Track Data Range: X=[{DATA[X_COL].min():.1f}, {DATA[X_COL].max():.1f}], Y=[{DATA[Y_COL].min():.1f}, {DATA[Y_COL].max():.1f}]")
 
-    for j, (y_min, y_max) in enumerate(y_ranges):
-        if y_min <= Y < y_max:
-            row = j
-            break
+if DATA[X_COL].max() > (X_ARENA + W_ARENA):
+    print("WARNING: Mouse moves OUTSIDE the defined arena width! Steps will be missed.")
 
-    return row, col
+def get_grid_index(X, Y):
+    # Check if position is valid
+    if not is_valid_position(X, Y):
+        return None
 
+    # relative position from the arena start
+    rel_x = X - X_ARENA
+    rel_y = Y - Y_ARENA
+
+    # index (pos/cell)
+    col = int(rel_x / (W_ARENA / COLUMN))
+    row = int(rel_y / (H_ARENA / ROW))
+
+    # clamp the values
+    # 5 box becomes [0-4]
+    col = min(col, COLUMN - 1)
+    row = min(row, ROW - 1)
+    
+    # safety clamp for negative values
+    col = max(col, 0)
+    row = max(row, 0)
+
+    return (row, col)
+
+# grid validity check
 def is_valid_grid(grid):
     return (
         grid is not None
@@ -65,50 +85,75 @@ def is_valid_position(X, Y):
         and not np.isnan(Y)
     )
 
-def calculate_grid_crossing(show_changes=False):
-    x_ranges, y_ranges = calculate_grid_range()
-
+def calculate_grid_crossing(dwell_enter=5, dwell_return=30, show_changes=False):
+    """
+    dwell_enter:  Frames required to commit to a NEW grid (fast, for running).
+    dwell_return: Frames required to return to the IMMEDIATE PREVIOUS grid (slow, for jitter).
+    show_changes: If True, prints out every grid change with step count.
+    """
     total_steps = {}
-    for track_id in DATA['track'].unique(): # tranversing each track(instance)
+    
+    for track_id in DATA['track'].unique():
         track_data = DATA[DATA['track'] == track_id]
-
-        grid_positions = []
+        
+        step_count = 0
+        
+        current_grid = None       # The grid the instance is officially in
+        previous_grid = None      # The grid the instance was in before 'current'
+        
+        potential_grid = None     # The grid the instance is currently looking at
+        frames_in_potential = 0
+        
         for _, row in track_data.iterrows():
             X, Y = row[X_COL], row[Y_COL]
-
-            if np.isnan(X) or np.isnan(Y):
-                grid_positions.append(None)
+            
+            # Get grid index
+            grid = get_grid_index(X, Y)
+            
+            if grid is None:
+                continue 
+                
+            # init on first frame
+            if current_grid is None:
+                current_grid = grid
                 continue
-
-            grid_pos = get_grid_index(X, Y, x_ranges, y_ranges)
-            grid_positions.append(grid_pos)
-
-        step_count = 0
-        prev_grid = None
-        prev_prev_grid = None
-
-        for grid in grid_positions:
-            if not is_valid_grid(grid):
-                prev_prev_grid = prev_grid
-                prev_grid = None
-                continue
-
-            # ignore immediate back-and-forth jitter
-            if prev_prev_grid is not None and grid == prev_prev_grid:
-                prev_prev_grid = prev_grid
-                prev_grid = grid
-                continue
-
-            if prev_grid is not None and grid != prev_grid:
-                step_count += 1
-                if show_changes:
-                    print(f'{track_id}: {prev_grid} → {grid} | Steps: {step_count}')
-
-            prev_prev_grid = prev_grid
-            prev_grid = grid
-
+            
+            # COUNTING
+            # if stable. Reset potential.
+            if grid == current_grid:
+                frames_in_potential = 0
+                potential_grid = None
+                
+            else:
+                # instance moving to a different grid.
+                if grid == potential_grid:
+                    frames_in_potential += 1
+                else:
+                    # Switched to a brand new potential grid
+                    potential_grid = grid
+                    frames_in_potential = 1
+                
+                # JITTERING THRESHOLD
+                # if the instance are going back to the same place -anticipating jitter - be strict
+                # if the instance are going to new place -running - be loose
+                threshold = dwell_return if (grid == previous_grid) else dwell_enter
+                
+                if frames_in_potential >= threshold:
+                    step_count += 1
+                    
+                    if show_changes:
+                        move_type = "RETURN" if grid == previous_grid else "NEW"
+                        print(f'{track_id}: {current_grid} -> {grid} ({move_type}) | Steps: {step_count}')
+                    
+                    # update State
+                    previous_grid = current_grid
+                    current_grid = grid
+                    frames_in_potential = 0
+                    potential_grid = None
+                    
         total_steps[track_id] = step_count
-        print(f'\n==================================Ended processing {track_id}==================================\n')
+        print(f'Processed {track_id}: {step_count} steps')
+        
     return total_steps
 
 def calculate_instances_velocity():
@@ -141,7 +186,9 @@ def calculate_instances_velocity():
     return velocities
 
 
-step_counts = calculate_grid_crossing(show_changes=True)
+# dwell_enter=5  (approx 0.15s) captures fast running.
+# dwell_return=30 (approx 1.0s) ignores jittering back and forth.
+step_counts = calculate_grid_crossing(dwell_enter=5, dwell_return=30, show_changes=True)
 print("TOTAL STEPS PER MOUSE:")
 for track, steps in step_counts.items():
     print(f'{track}: {steps}')
