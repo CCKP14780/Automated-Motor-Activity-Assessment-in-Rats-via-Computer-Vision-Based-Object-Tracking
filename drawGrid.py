@@ -1,8 +1,12 @@
 from locomotorActivity import *
 import cv2
 
-VIDEO = r'sleap-tutorial-data\mice.mp4'
+'''VIDEO = r'sleap-tutorial-data\mice.mp4'
 OUTPUT_PATH = r'sleap-tutorial-data\output_grid_overlay.mp4'
+'''
+VIDEO = r'Result\\mice_new.mp4'
+OUTPUT_PATH = r'Result\\output_grid_overlay.mp4'
+
 COL = (0,0,255) # grid color
 THICKNESS = 3
 
@@ -72,5 +76,5 @@ def display_frame_with_grid_overlay(save_video = False, flip = False):
     cv2.destroyAllWindows()
 
 
-display_frame_with_grid_overlay(save_video=True, flip=False)
-display_frame_with_grid_overlay(save_video=True, flip=True)
+display_frame_with_grid_overlay(save_video=False, flip=False)
+# display_frame_with_grid_overlay(save_video=True, flip=True)

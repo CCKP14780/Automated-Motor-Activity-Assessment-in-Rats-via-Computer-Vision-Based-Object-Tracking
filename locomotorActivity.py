@@ -17,7 +17,8 @@ from pprint import pprint
 # H_ARENA = DIMENSION[5]
 
 # Tracking parameters (CSV)
-INPUT_CSV = r'predictions\predictions\baseLine_labels.v003.000_mice_new.analysis.csv'
+# TODO: INPUT_CSV = r'predictions\predictions\baseLine_labels.v003.000_mice_new.analysis.csv'
+INPUT_CSV = r'Result\new_video.v002.000_mice_new.analysis.csv'
 BODY_PART = 'torso'
 X_COL, Y_COL = f'{BODY_PART}.x', f'{BODY_PART}.y'
 DATA = pd.read_csv(INPUT_CSV)
@@ -195,9 +196,9 @@ def calculate_instances_velocity():
     return velocities
 
 def run():
-    # dwell_enter=5  (approx 0.15s) captures fast running.
-    # dwell_return=30 (approx 1.0s) ignores jittering back and forth.
-    step_counts = calculate_grid_crossing(dwell_enter=5, dwell_return=30, show_changes=True)
+    # eg. dwell_enter=5  (approx 0.15s) captures fast running.
+    # eg. dwell_return=30 (approx 1.0s) ignores jittering back and forth.
+    step_counts = calculate_grid_crossing(dwell_enter=2, dwell_return=25, show_changes=True)
     print("TOTAL STEPS PER MOUSE:")
     for track, steps in step_counts.items():
         print(f'{track}: {steps}')
@@ -206,3 +207,6 @@ def run():
     print("\nAVERAGE VELOCITY PER MOUSE:")
     for track, velocity in velocity_dict.items():
         print(f'{track}: {velocity:.2f} pixels/frame')
+
+
+run()
