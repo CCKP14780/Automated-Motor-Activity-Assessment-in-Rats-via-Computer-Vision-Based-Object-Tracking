@@ -37,7 +37,7 @@ y_min_data = DATA[Y_COL].min()
 y_max_data = DATA[Y_COL].max()
 
 # sided tweaking
-left_extension = 100
+left_extension = 0.1 * (x_max_data - x_min_data)  # extend left side by 10% of the width
 
 X_ARENA = (x_min_data - padding) - left_extension # left wall
 Y_ARENA = y_min_data - padding # top wall (Y increases downwards in image coordinates)
@@ -102,7 +102,7 @@ def calculate_grid_crossing(dwell_enter=5, dwell_return=30, show_changes=False):
     show_changes: If True, prints out every grid change with step count.
     """
     total_steps = {}
-    
+    temp_frame = 0
     for track_id in DATA['track'].unique():
         track_data = DATA[DATA['track'] == track_id]
         
@@ -163,6 +163,7 @@ def calculate_grid_crossing(dwell_enter=5, dwell_return=30, show_changes=False):
                     
         total_steps[track_id] = step_count
         print(f'Processed {track_id}: {step_count} steps')
+        print(f'Last frame for {track_id}: {row["frame_idx"]}')
         
     return total_steps
 
@@ -198,7 +199,7 @@ def calculate_instances_velocity():
 def run():
     # eg. dwell_enter=5  (approx 0.15s) captures fast running.
     # eg. dwell_return=30 (approx 1.0s) ignores jittering back and forth.
-    step_counts = calculate_grid_crossing(dwell_enter=2, dwell_return=25, show_changes=True)
+    step_counts = calculate_grid_crossing(dwell_enter=1, dwell_return=3, show_changes=True)
     print("TOTAL STEPS PER MOUSE:")
     for track, steps in step_counts.items():
         print(f'{track}: {steps}')
