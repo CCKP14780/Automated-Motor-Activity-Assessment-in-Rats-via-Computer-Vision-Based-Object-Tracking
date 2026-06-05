@@ -1,0 +1,4 @@
+{
+    "centroid_model": "path/to/centroid_model",
+    "instance_model": "path/to/instance_model"
+}
