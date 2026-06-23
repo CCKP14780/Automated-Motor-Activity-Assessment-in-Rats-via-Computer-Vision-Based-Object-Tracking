@@ -1,8 +1,17 @@
 {
     "PATH": "Result\\",
+    "OUTPUT": "output_grid_overlay",
     "VIDEO": "mice_new.mp4",
     "INPUT_CSV": "new_video.v002.000_mice_new.analysis.csv",
-    "BODY_PARTS" : {"head":1.0, "torso":1.5, "tail_base":0.6},
-    "GRID_ROW" : 3,
-    "GRID_COLUMN" : 5
+    "BODY_PARTS": {
+        "head": 1.0,
+        "torso": 1.5,
+        "tail_base": 0.6
+    },
+    "GRID_ROW": 3,
+    "GRID_COLUMN": 5,
+    "START_FRAME": 0,
+    "END_FRAME": 1410,
+    "THRESHOLD": 2.1,
+    "CONFIRM_FRAMES": 2
 }

@@ -1,10 +1,6 @@
 import math
-import json
 
-with open('data.json', 'r') as f:
-    config = json.load(f)
-
-class Grid():
+class Grid:
     def __init__(self, x_min, x_max, y_min, y_max, row, column):
         self.x_min = x_min
         self.x_max = x_max
@@ -14,19 +10,22 @@ class Grid():
         self.column = column
         self.width = (self.x_max - self.x_min) / self.column
         self.height = (self.y_max - self.y_min) / self.row
-        self.body_parts = config.get('BODY_PARTS')
-        
-    def grid_coords_list(self):
-        grid_coordinates = {}
-        for r in range(self.row):
-            for c in range(self.column):
-                grid_coordinates[(r, c)] = 0
-        return grid_coordinates
-    
-    def calculate_grid_coordinates(self, x_pos, y_pos, body_part):
+
+    def calculate_grid_coordinates(self, x_pos, y_pos):
+        # reject out-of-arena / invalid values
+        if x_pos is None or y_pos is None:
+            return None
+
+        if x_pos < self.x_min or x_pos >= self.x_max:
+            return None
+        if y_pos < self.y_min or y_pos >= self.y_max:
+            return None
+
         col = math.floor((x_pos - self.x_min) / self.width)
         row = math.floor((y_pos - self.y_min) / self.height)
 
-        if (row, col) in self.grid_coords_list():
-            self.grid_coords_list()[(row, col)] += 1
+        # safety clamp
+        col = max(0, min(col, self.column - 1))
+        row = max(0, min(row, self.row - 1))
+
         return (row, col)
