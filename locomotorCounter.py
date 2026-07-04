@@ -86,3 +86,8 @@ class LocomotorCounter:
 
     def get_log(self):
         return "\n".join(self.log_lines)
+    
+class SingleMarkpointCounter(LocomotorCounter):
+    '''
+    A locomotor counter that only used single markpoint tracking data to determine steps.'''
+    pass

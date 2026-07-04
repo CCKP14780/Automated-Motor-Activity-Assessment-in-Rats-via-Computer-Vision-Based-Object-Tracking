@@ -242,7 +242,7 @@ def main():
     global OUTPUT_PATH
     OUTPUT_PATH = get_latest_version(OUTPUT)
     display_frame_with_grid_overlay(
-        save_video=True,
+        save_video=False,
         start_frame=START_FRAME,
         end_frame=END_FRAME
     )
