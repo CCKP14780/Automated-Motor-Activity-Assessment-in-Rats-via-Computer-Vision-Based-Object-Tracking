@@ -5,7 +5,10 @@ import json
 from pathlib import Path
 import re
 from gridCoordinates import Grid
-from locomotorCounter import LocomotorCounter
+from locomotorCounter import (
+    LocomotorCounter,
+    SingleMarkpointCounter
+)
 
 # =========================
 # Load config
@@ -18,6 +21,9 @@ VIDEO = f"{PATH}{config.get('VIDEO')}"
 INPUT_CSV = f"{PATH}{config.get('INPUT_CSV')}"
 BODY_SCORE = config.get('BODY_PARTS') 
 BODY_PARTS = list(BODY_SCORE.keys())
+ARENA_REFERENCE = config.get("ARENA_REFERENCE", "torso")
+COUNTING_MODE = config.get("COUNTING_MODE", "single")
+MARKPOINT = config.get("MARKPOINT", "torso")
 
 ROW = config.get('GRID_ROW')
 COLUMN = config.get('GRID_COLUMN')
@@ -40,10 +46,10 @@ BODY_COORDS = {
 # =========================
 # Arena definition
 # =========================
-x_min_data = DATA[BODY_COORDS['torso']['x']].min()
-x_max_data = DATA[BODY_COORDS['torso']['x']].max()
-y_min_data = DATA[BODY_COORDS['torso']['y']].min()
-y_max_data = DATA[BODY_COORDS['torso']['y']].max()
+x_min_data = DATA[BODY_COORDS[ARENA_REFERENCE]['x']].min()
+x_max_data = DATA[BODY_COORDS[ARENA_REFERENCE]['x']].max()
+y_min_data = DATA[BODY_COORDS[ARENA_REFERENCE]['y']].min()
+y_max_data = DATA[BODY_COORDS[ARENA_REFERENCE]['y']].max()
 
 left_extension = 0.1 * (x_max_data - x_min_data)
 
@@ -52,7 +58,26 @@ Y_AR = int(y_min_data - padding)
 W_AR = int((x_max_data - x_min_data) + (2 * padding) + left_extension)
 H_AR = int((y_max_data - y_min_data) + (2 * padding))
 
+# Color map to be display as track colors for each rat
+TRACK_COLORS = [
+    (255, 0, 0),      # Blue
+    (0, 255, 0),      # Green
+    (0, 0, 255),      # Red
+    (255, 255, 0),    # Cyan
+    (255, 0, 255),    # Magenta
+    ]
+
 grid = Grid(X_AR, X_AR + W_AR, Y_AR, Y_AR + H_AR, ROW, COLUMN)
+
+# printing configuration
+print(f"COUNTING MODE : {COUNTING_MODE}")
+if COUNTING_MODE == "single":
+    print(f"MARKPOINT     : {MARKPOINT}")
+elif COUNTING_MODE == "multi":
+    print(f"THRESHOLD     : {THRESHOLD}")
+    print(f"BODY_PARTS    : {BODY_SCORE}")
+    
+print(f"CONFIRM_FRAMES: {CONFIRM_FRAMES}")
 
 # =========================
 # Utility
@@ -97,6 +122,27 @@ def extract_body_grids(row):
 
     return body_grids
 
+def create_counter(track_id):
+
+    if COUNTING_MODE == "single":
+        return SingleMarkpointCounter(
+            track_id=track_id,
+            body_part=MARKPOINT,
+            confirm_frames=CONFIRM_FRAMES
+        )
+
+    elif COUNTING_MODE == "multi":
+        return LocomotorCounter(
+            track_id=track_id,
+            body_score=BODY_SCORE,
+            threshold=THRESHOLD,
+            confirm_frames=CONFIRM_FRAMES
+        )
+
+    else:
+        raise ValueError(
+            f"Unknown COUNTING_MODE: {COUNTING_MODE}"
+        )
 
 # =========================
 # Main display + counting loop
@@ -122,23 +168,37 @@ def display_frame_with_grid_overlay(save_video=False, start_frame=0, end_frame=N
     COLOR = (0, 0, 255)
     THICKNESS = 2
 
-    # counters per rat
+    # NOTE: counters per rat
+    # counters = {
+    # 'track_0': LocomotorCounter(
+    #     track_id='track_0',
+    #     body_score=BODY_SCORE,
+    #     threshold=THRESHOLD,
+    #     confirm_frames=CONFIRM_FRAMES
+    # ),
+    # 'track_1': LocomotorCounter(
+    #     track_id='track_1',
+    #     body_score=BODY_SCORE,
+    #     threshold=THRESHOLD,
+    #     confirm_frames=CONFIRM_FRAMES
+    # )
+    # }
+
+    # track_ids = sorted(DATA['track'].unique())
+    track_ids = sorted(DATA['track'].dropna().unique())
+
     counters = {
-    'track_0': LocomotorCounter(
-        track_id='track_0',
-        body_score=BODY_SCORE,
-        threshold=THRESHOLD,
-        confirm_frames=CONFIRM_FRAMES
-    ),
-    'track_1': LocomotorCounter(
-        track_id='track_1',
-        body_score=BODY_SCORE,
-        threshold=THRESHOLD,
-        confirm_frames=CONFIRM_FRAMES
-    )
+        track_id: create_counter(track_id)
+        for track_id in track_ids
     }
 
     cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+
+    # track colors for display
+    track_color_map = {
+        track_id: TRACK_COLORS[i % len(TRACK_COLORS)]
+        for i, track_id in enumerate(track_ids)
+    }
 
     while True:
         frame_idx = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
@@ -167,8 +227,8 @@ def display_frame_with_grid_overlay(save_video=False, start_frame=0, end_frame=N
 
         # display defaults
         display_score = {
-            'track_0': f"Track 0: {counters['track_0'].step_count}",
-            'track_1': f"Track 1: {counters['track_1'].step_count}",
+            track_id: f"{track_id}: {counter.step_count}"
+            for track_id, counter in counters.items()
         }
 
         # rows for this frame (one row per rat)
@@ -186,7 +246,7 @@ def display_frame_with_grid_overlay(save_video=False, start_frame=0, end_frame=N
             counters[track_id].update(frame_idx, body_grids)
 
             # draw body parts
-            color = (255, 0, 0) if track_id == 'track_0' else (0, 255, 0)
+            color = track_color_map[track_id]
 
             for part in BODY_PARTS:
                 x_col = BODY_COORDS[part]['x']
@@ -203,10 +263,9 @@ def display_frame_with_grid_overlay(save_video=False, start_frame=0, end_frame=N
 
             display_score[track_id] = f"{track_id}: {counters[track_id].step_count}"
 
-        cv2.putText(frame, display_score['track_0'], (30, 40),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2, cv2.LINE_AA)
-        cv2.putText(frame, display_score['track_1'], (30, 70),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2, cv2.LINE_AA)
+        for i, (track_id, score) in enumerate(display_score.items()):
+            cv2.putText(frame, score, (30, 40 + i * 30),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, track_color_map[track_id], 2, cv2.LINE_AA)
 
         if save_video and out is not None:
             out.write(frame)

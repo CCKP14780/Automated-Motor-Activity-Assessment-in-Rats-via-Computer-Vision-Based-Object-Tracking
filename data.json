@@ -1,8 +1,11 @@
 {
     "PATH": "Result\\",
     "OUTPUT": "output_grid_overlay",
+    "ARENA_REFERENCE": "torso",
     "VIDEO": "mice_new.mp4",
     "INPUT_CSV": "new_video.v002.000_mice_new.analysis.csv",
+    "COUNTING_MODE": "single",
+    "MARKPOINT": "torso",
     "BODY_PARTS": {
         "head": 1.0,
         "torso": 1.5,
