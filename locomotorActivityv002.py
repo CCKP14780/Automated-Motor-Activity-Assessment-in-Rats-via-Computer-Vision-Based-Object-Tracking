@@ -9,6 +9,12 @@ from locomotorCounter import (
     LocomotorCounter,
     SingleMarkpointCounter
 )
+# Essential to add in new local
+'''
+activate .venv
+uv pip install "sleap[nn]"
+uv run sleap-label
+'''
 
 # =========================
 # Load config
