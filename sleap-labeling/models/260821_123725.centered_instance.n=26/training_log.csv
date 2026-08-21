@@ -1,0 +1,5 @@
+epoch,train/loss,val/loss,learning_rate,train/time,val/time,train/confmaps/head,train/confmaps/torso,train/confmaps/tail_base,eval/val/mOKS,eval/val/oks_voc_mAP,eval/val/oks_voc_mAR,eval/val/distance/avg,eval/val/distance/p50,eval/val/distance/p95,eval/val/distance/p99,eval/val/mPCK,eval/val/PCK_5,eval/val/PCK_10,eval/val/visibility_precision,eval/val/visibility_recall
+0,,0.0005065290024504066,,,4.812969207763672,,,,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan
+1,0.0005536024109460413,0.0004994678311049938,9.999999747378752e-05,2475.791259765625,4.617013454437256,0.0005241925246082246,0.0006301281391642988,0.000509572506416589,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan
+2,0.0004883990040980279,0.0004960724618285894,9.999999747378752e-05,2483.81982421875,4.48245906829834,0.0005092081846669316,0.0004692933289334178,0.00048628897638991475,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan
+3,0.0004837577580474317,0.0004820316971745342,9.999999747378752e-05,2484.207275390625,4.470499038696289,0.0005072341882623732,0.00046374989324249327,0.00048011422040872276,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan
