@@ -1,0 +1,16 @@
+inference:
+- data_path: wistar-mouse-grayscale-labels.v003.slp
+  models:
+  - models/260825_115048.centroid.n=145
+  - models/260825_115048.centered_instance.n=145
+  only_suggested_frames: true
+  output_path: wistar-mouse-grayscale-labels.v003.slp.predictions.slp
+  tracking: {}
+  type: labels
+training:
+- cfg: centroid.yaml
+  run_path: models/260825_115048.centroid.n=145
+  train_labels: wistar-mouse-grayscale-labels.v003.slp
+- cfg: centered_instance.yaml
+  run_path: models/260825_115048.centered_instance.n=145
+  train_labels: wistar-mouse-grayscale-labels.v003.slp

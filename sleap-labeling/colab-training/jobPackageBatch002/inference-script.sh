@@ -1,0 +1,2 @@
+#!/bin/bash
+sleap predict --gui --data_path C:\Users\ICT68\Documents\GitHub\Automated-Motor-Activity-Assessment-in-Rats-via-Computer-Vision-Based-Object-Tracking\sleap-labeling\wistar-mouse-grayscale-labels.v003.slp --only_suggested_frames --model_paths models/260825_115048.centroid.n=145 --model_paths models/260825_115048.centered_instance.n=145 -o wistar-mouse-grayscale-labels.v003.slp.predictions.slp --max_instances 2 --exclude_user_labeled
