@@ -12,11 +12,11 @@ sleap predict `
   --ensure_grayscale `
   --peak_threshold 0.20 `
   --max_instances 1 `
-  -o "C:/Users/ICT68/Documents/GitHub/Automated-Motor-Activity-Assessment-in-Rats-via-Computer-Vision-Based-Object-Tracking/sleap-labeling/predictions/F8.mov_testPred.peak_0_20.with_tracking.v003.slp"
+  -o "C:/Users/ICT68/Documents/GitHub/Automated-Motor-Activity-Assessment-in-Rats-via-Computer-Vision-Based-Object-Tracking/sleap-labeling/predictions/F8.mov_testPred.peak_0_20.with_tracking.v005.slp"
 """
 
 run_result_cmd = r"""
-  uv run sleap-label "C:/Users/ICT68/Documents/GitHub/Automated-Motor-Activity-Assessment-in-Rats-via-Computer-Vision-Based-Object-Tracking/sleap-labeling/predictions/F8.mov_testPred.peak_0_20.with_tracking.v003.slp"
+  uv run sleap-label "C:/Users/ICT68/Documents/GitHub/Automated-Motor-Activity-Assessment-in-Rats-via-Computer-Vision-Based-Object-Tracking/sleap-labeling/predictions/F8.mov_testPred.peak_0_20.with_tracking.v005.slp"
 """
 # Execute via PowerShell
 subprocess.run(["powershell", "-Command", powershell_cmd], check=True)
