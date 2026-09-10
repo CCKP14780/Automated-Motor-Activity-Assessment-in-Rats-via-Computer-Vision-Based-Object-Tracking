@@ -15,6 +15,7 @@ sleap predict `
   --model_paths "C:/Users/ICT68/Documents/GitHub/Automated-Motor-Activity-Assessment-in-Rats-via-Computer-Vision-Based-Object-Tracking/sleap-labeling/models/260826_200900.centered_instance.n=408" `
   --ensure_grayscale `
   --max_instances 1 `
+  --tracking `
   --track_matching_method hungarian `
   --tracking_window_size 20 `
   --candidates_method local_queues `
