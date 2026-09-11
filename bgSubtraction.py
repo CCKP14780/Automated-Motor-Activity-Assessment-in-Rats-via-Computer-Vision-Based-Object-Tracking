@@ -7,7 +7,7 @@ from pathlib import Path
 # Configuration
 # ============================================================
 
-VIDEO_NAME = "M8"
+VIDEO_NAME = "F8"
 
 VIDEO_PATH = (
     rf"sleap-labeling\datasets\train\{VIDEO_NAME}.mov"

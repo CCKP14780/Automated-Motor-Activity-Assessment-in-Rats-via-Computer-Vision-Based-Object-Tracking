@@ -7,7 +7,7 @@ from pathlib import Path
 # Configuration
 # ============================================================
 
-VIDEO_NAME = "F8"
+VIDEO_NAME = "M8"
 
 VIDEO_PATH = (
     rf"sleap-labeling\datasets\train\{VIDEO_NAME}.mov"
@@ -57,12 +57,32 @@ BLUR_KERNEL_SIZE = 3       # Must be odd
 CLOSE_KERNEL_SIZE = 5      # Must be odd
 CLOSE_ITERATIONS = 1
 
+# ============================================================
+# Threshold configuration
+# ============================================================
+
+# Threshold method:
+#   "otsu"      = global automatic threshold
+#   "adaptive"  = local adaptive threshold
+THRESHOLD_METHOD = "adaptive"
+
 # Limits applied to Otsu's automatic threshold
 MIN_AUTO_THRESHOLD = 3
 MAX_AUTO_THRESHOLD = 50
 
+# Adaptive threshold parameters.
+# BLOCK_SIZE must be odd and greater than 1.
+# Larger values use a larger local neighborhood.
+ADAPTIVE_BLOCK_SIZE = 103
+
+# Constant subtracted from the local mean.
+# Increase this if too much background/noise becomes foreground.
+ADAPTIVE_C = 3
+
 # Threshold smoothing:
-# Lower = more stable, higher = reacts faster
+# Lower = more stable, higher = reacts faster.
+# Used by Otsu mode. Adaptive mode calculates a local threshold
+# independently for each frame.
 THRESHOLD_SMOOTHING = 0.10
 
 # Trackbar defaults
@@ -231,6 +251,36 @@ def calculate_otsu_threshold(
             MAX_AUTO_THRESHOLD
         )
     )
+
+
+def calculate_adaptive_mask(
+    difference_gray
+):
+    """
+    Create a foreground mask using local adaptive thresholding.
+
+    Each pixel is compared with the local mean intensity around it.
+    This can handle uneven illumination or background differences
+    better than one global threshold.
+    """
+
+    block_size = ADAPTIVE_BLOCK_SIZE
+
+    if block_size <= 1 or block_size % 2 == 0:
+        raise ValueError(
+            "ADAPTIVE_BLOCK_SIZE must be an odd integer greater than 1."
+        )
+
+    adaptive_mask = cv2.adaptiveThreshold(
+        difference_gray,
+        255,
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY,
+        block_size,
+        ADAPTIVE_C
+    )
+
+    return adaptive_mask
 
 
 def create_masks(
@@ -424,6 +474,9 @@ def export_video(
         f"Min area:   {minimum_area}"
     )
     print(
+        f"Method:     {THRESHOLD_METHOD}"
+    )
+    print(
         f"Threshold:  {threshold_offset:+d}"
     )
     print(
@@ -512,37 +565,112 @@ def export_video(
             )
         )
 
-        # Calculate Otsu threshold
-        otsu_threshold = (
-            calculate_otsu_threshold(
+        # Create masks using the selected threshold method.
+        if THRESHOLD_METHOD == "adaptive":
+            raw_mask = calculate_adaptive_mask(
                 difference_gray
             )
-        )
 
-        # Apply CURRENT slider offset
-        final_threshold = int(
-            round(
-                otsu_threshold
-                + threshold_offset
+            # The threshold offset is implemented as a small
+            # morphological adjustment in adaptive mode.
+            # Positive offset makes the mask stricter by removing
+            # small foreground regions; negative offset is more permissive.
+            if threshold_offset != 0:
+                if threshold_offset > 0:
+                    kernel = cv2.getStructuringElement(
+                        cv2.MORPH_ELLIPSE,
+                        (3, 3)
+                    )
+                    raw_mask = cv2.erode(
+                        raw_mask,
+                        kernel,
+                        iterations=min(threshold_offset, 5)
+                    )
+                else:
+                    kernel = cv2.getStructuringElement(
+                        cv2.MORPH_ELLIPSE,
+                        (3, 3)
+                    )
+                    raw_mask = cv2.dilate(
+                        raw_mask,
+                        kernel,
+                        iterations=min(abs(threshold_offset), 5)
+                    )
+
+            used_threshold_text = "Adaptive"
+
+        elif THRESHOLD_METHOD == "otsu":
+            otsu_threshold = (
+                calculate_otsu_threshold(
+                    difference_gray
+                )
             )
-        )
 
-        final_threshold = int(
-            np.clip(
-                final_threshold,
-                1,
-                255
+            final_threshold = int(
+                round(
+                    otsu_threshold
+                    + threshold_offset
+                )
             )
-        )
 
-        # Create masks
-        raw_mask, clean_mask = (
-            create_masks(
+            final_threshold = int(
+                np.clip(
+                    final_threshold,
+                    1,
+                    255
+                )
+            )
+
+            raw_mask, _ = create_masks(
                 difference_gray,
                 final_threshold,
                 minimum_area
             )
+
+            used_threshold_text = str(final_threshold)
+
+        else:
+            raise ValueError(
+                "THRESHOLD_METHOD must be 'otsu' or 'adaptive'."
+            )
+
+        # Clean the selected raw mask.
+        _, clean_mask = create_masks(
+            difference_gray,
+            255,  # temporary threshold; raw_mask is supplied below
+            minimum_area
         )
+
+        # Re-apply morphology/component filtering directly to raw_mask.
+        close_kernel = cv2.getStructuringElement(
+            cv2.MORPH_ELLIPSE,
+            (CLOSE_KERNEL_SIZE, CLOSE_KERNEL_SIZE)
+        )
+
+        connected_mask = cv2.morphologyEx(
+            raw_mask,
+            cv2.MORPH_CLOSE,
+            close_kernel,
+            iterations=CLOSE_ITERATIONS
+        )
+
+        component_count, labels, stats, _ = (
+            cv2.connectedComponentsWithStats(
+                connected_mask,
+                connectivity=8
+            )
+        )
+
+        clean_mask = np.zeros_like(raw_mask)
+
+        for label in range(1, component_count):
+            area = stats[
+                label,
+                cv2.CC_STAT_AREA
+            ]
+
+            if area >= minimum_area:
+                clean_mask[labels == label] = 255
 
         # Create rat-only image
         rat_only = cv2.bitwise_and(
@@ -819,65 +947,128 @@ while True:
     )
 
     # --------------------------------------------------------
-    # Find automatic threshold
+    # Create masks using selected threshold method
     # --------------------------------------------------------
 
-    otsu_threshold = (
-        calculate_otsu_threshold(
+    if THRESHOLD_METHOD == "adaptive":
+
+        raw_mask = calculate_adaptive_mask(
             difference_gray
         )
-    )
 
-    # --------------------------------------------------------
-    # Smooth automatic threshold
-    # --------------------------------------------------------
+        # Keep the existing slider useful in adaptive mode.
+        if threshold_offset > 0:
+            kernel = cv2.getStructuringElement(
+                cv2.MORPH_ELLIPSE,
+                (3, 3)
+            )
+            raw_mask = cv2.erode(
+                raw_mask,
+                kernel,
+                iterations=min(threshold_offset, 5)
+            )
 
-    if smoothed_threshold is None:
+        elif threshold_offset < 0:
+            kernel = cv2.getStructuringElement(
+                cv2.MORPH_ELLIPSE,
+                (3, 3)
+            )
+            raw_mask = cv2.dilate(
+                raw_mask,
+                kernel,
+                iterations=min(abs(threshold_offset), 5)
+            )
 
-        smoothed_threshold = (
-            otsu_threshold
+        # Apply the same closing + connected-component filtering
+        # used by the normal mask pipeline.
+        close_kernel = cv2.getStructuringElement(
+            cv2.MORPH_ELLIPSE,
+            (CLOSE_KERNEL_SIZE, CLOSE_KERNEL_SIZE)
         )
 
-    elif not paused:
-
-        smoothed_threshold = (
-            (1.0 - THRESHOLD_SMOOTHING)
-            * smoothed_threshold
-            +
-            THRESHOLD_SMOOTHING
-            * otsu_threshold
+        connected_mask = cv2.morphologyEx(
+            raw_mask,
+            cv2.MORPH_CLOSE,
+            close_kernel,
+            iterations=CLOSE_ITERATIONS
         )
 
-    # --------------------------------------------------------
-    # Apply current threshold offset
-    # --------------------------------------------------------
-
-    final_threshold = int(
-        round(
-            smoothed_threshold
-            + threshold_offset
+        component_count, labels, stats, _ = (
+            cv2.connectedComponentsWithStats(
+                connected_mask,
+                connectivity=8
+            )
         )
-    )
 
-    final_threshold = int(
-        np.clip(
-            final_threshold,
-            1,
-            255
+        clean_mask = np.zeros_like(raw_mask)
+
+        for label in range(1, component_count):
+
+            area = stats[
+                label,
+                cv2.CC_STAT_AREA
+            ]
+
+            if area >= minimum_area:
+                clean_mask[
+                    labels == label
+                ] = 255
+
+        used_threshold_text = "Adaptive"
+
+    elif THRESHOLD_METHOD == "otsu":
+
+        otsu_threshold = (
+            calculate_otsu_threshold(
+                difference_gray
+            )
         )
-    )
 
-    # --------------------------------------------------------
-    # Create masks
-    # --------------------------------------------------------
+        # ----------------------------------------------------
+        # Smooth automatic threshold
+        # ----------------------------------------------------
 
-    raw_mask, clean_mask = (
-        create_masks(
-            difference_gray,
-            final_threshold,
-            minimum_area
+        if smoothed_threshold is None:
+            smoothed_threshold = otsu_threshold
+
+        elif not paused:
+            smoothed_threshold = (
+                (1.0 - THRESHOLD_SMOOTHING)
+                * smoothed_threshold
+                +
+                THRESHOLD_SMOOTHING
+                * otsu_threshold
+            )
+
+        final_threshold = int(
+            round(
+                smoothed_threshold
+                + threshold_offset
+            )
         )
-    )
+
+        final_threshold = int(
+            np.clip(
+                final_threshold,
+                1,
+                255
+            )
+        )
+
+        raw_mask, clean_mask = (
+            create_masks(
+                difference_gray,
+                final_threshold,
+                minimum_area
+            )
+        )
+
+        used_threshold_text = str(final_threshold)
+
+    else:
+        raise ValueError(
+            "THRESHOLD_METHOD must be 'otsu' or 'adaptive'."
+        )
 
     # --------------------------------------------------------
     # Create rat-only image
@@ -922,8 +1113,8 @@ while True:
         resize_to_panel(
             difference_visualization
         ),
-        f"Difference | Otsu: "
-        f"{otsu_threshold:.0f}"
+        f"Difference | Method: "
+        f"{THRESHOLD_METHOD}"
     )
 
     raw_mask_panel = add_label(
@@ -931,8 +1122,7 @@ while True:
             raw_mask,
             is_mask=True
         ),
-        f"Raw mask | Used: "
-        f"{final_threshold}"
+        f"Raw mask | {used_threshold_text}"
     )
 
     clean_mask_panel = add_label(
