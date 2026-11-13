@@ -1,0 +1,117 @@
+{
+  "version": "1.0",
+  "videos": [
+    {
+      "filename": "D:/GitHub/Automated-Motor-Activity-Assessment-in-Rats-via-Computer-Vision-Based-Object-Tracking/sleap-labeling/datasets/test/M15.mov",
+      "backend_metadata": {
+        "type": "MediaVideo",
+        "filename": "D:/GitHub/Automated-Motor-Activity-Assessment-in-Rats-via-Computer-Vision-Based-Object-Tracking/sleap-labeling/datasets/test/M15.mov",
+        "bgr": true,
+        "dataset": null,
+        "input_format": "",
+        "grayscale": false,
+        "shape": [
+          747,
+          1080,
+          1920,
+          3
+        ],
+        "fps": 24.0
+      }
+    }
+  ],
+  "skeletons": [
+    {
+      "name": null,
+      "nodes": [
+        "head",
+        "torso",
+        "tail_base"
+      ],
+      "edges": [
+        [
+          "torso",
+          "tail_base"
+        ],
+        [
+          "torso",
+          "head"
+        ]
+      ],
+      "symmetries": []
+    }
+  ],
+  "tracks": [
+    "track_0"
+  ],
+  "suggestions": [],
+  "provenance": {
+    "inference_start_timestamp": "2026-10-08T13:35:20.637649",
+    "inference_end_timestamp": "2026-10-08T13:38:58.043103",
+    "inference_runtime_seconds": 217.405454,
+    "sleap_nn_version": "0.3.3",
+    "sleap_io_version": "0.9.2",
+    "model_paths": [
+      "C:/Users/ICT68/Documents/GitHub/Automated-Motor-Activity-Assessment-in-Rats-via-Computer-Vision-Based-Object-Tracking/sleap-labeling/models/260924_154748.centroid.n=409",
+      "C:/Users/ICT68/Documents/GitHub/Automated-Motor-Activity-Assessment-in-Rats-via-Computer-Vision-Based-Object-Tracking/sleap-labeling/models/260924_224711.centered_instance.n=409"
+    ],
+    "model_type": "TopDownLayer",
+    "source_file": "C:/Users/ICT68/Documents/GitHub/Automated-Motor-Activity-Assessment-in-Rats-via-Computer-Vision-Based-Object-Tracking/sleap-labeling/datasets/test/M15.mov",
+    "frame_selection": {
+      "frames_processed": 747
+    },
+    "inference_config": {
+      "peak_threshold": 0.2,
+      "centroid_threshold": 0.2,
+      "keypoint_threshold": 0.2,
+      "max_instances": 1,
+      "integral_refinement": "integral",
+      "integral_patch_size": 5,
+      "batch_size": 4,
+      "centroid_scale": 0.25,
+      "instance_scale": 1.0,
+      "crop_size": [
+        784,
+        784
+      ]
+    },
+    "tracking_config": {
+      "window_size": 20,
+      "min_new_track_points": 0,
+      "candidates_method": "local_queues",
+      "min_match_points": 0,
+      "features": "centroids",
+      "scoring_method": "euclidean_dist",
+      "scoring_reduction": "mean",
+      "robust_best_instance": 1.0,
+      "track_matching_method": "hungarian",
+      "max_tracks": 1,
+      "use_flow": false,
+      "of_img_scale": 1.0,
+      "of_window_size": 21,
+      "of_max_levels": 3,
+      "use_kalman": false,
+      "kf_track_features": "centroid",
+      "kf_init_frame_count": 10,
+      "kf_reset_gap_size": 5,
+      "tracking_pre_cull_to_target": 0,
+      "tracking_pre_cull_iou_threshold": 0.0,
+      "tracking_clean_instance_count": 0,
+      "tracking_clean_iou_threshold": 0.0,
+      "post_connect_single_breaks": false,
+      "scoring_method_explicit": true,
+      "features_explicit": true,
+      "candidates_method_explicit": true
+    },
+    "device": "cpu",
+    "system_info": {
+      "python_version": "3.12.12",
+      "platform": "Windows-11-10.0.26200-SP0",
+      "pytorch_version": "2.5.1+cu121",
+      "cuda_version": null,
+      "accelerator": "cpu",
+      "gpu_count": 0
+    },
+    "filename": "D:\\GitHub\\Automated-Motor-Activity-Assessment-in-Rats-via-Computer-Vision-Based-Object-Tracking\\sleap-labeling\\predictions\\M15.n409.rgb.predictions.slp"
+  }
+}

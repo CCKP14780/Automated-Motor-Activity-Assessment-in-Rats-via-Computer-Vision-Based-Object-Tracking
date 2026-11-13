@@ -1,9 +1,9 @@
 {
-    "PATH": "Result\\",
+    "PATH": "sleap-labeling\\",
     "OUTPUT": "output_grid_overlay",
     "ARENA_REFERENCE": "torso",
-    "VIDEO": "mice_new.mp4",
-    "INPUT_CSV": "new_video.v002.000_mice_new.analysis.csv",
+    "VIDEO": "datasets\\test\\M15.mov",
+    "INPUT_CSV": "predictions\\M15.n409.rgb.predictions.000_M15.analysis.csv",
     "COUNTING_MODE": "single",
     "MARKPOINT": "torso",
     "BODY_PARTS": {
